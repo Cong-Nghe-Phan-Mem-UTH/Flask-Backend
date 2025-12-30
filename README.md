@@ -1,6 +1,6 @@
 # Flask Backend - Clean Architecture
 
-Backend API chuyển đổi từ Node.js/Fastify sang Flask theo Clean Architecture pattern.
+Backend API được xây dựng với Flask theo Clean Architecture pattern.
 
 ## 📁 Cấu trúc thư mục
 
@@ -235,17 +235,6 @@ socket.on("new-order", (data) => {
 - Socket.IO cho real-time features
 - Background jobs tự động chạy (xóa refresh tokens hết hạn)
 - Error handling tập trung
-
-## 🔄 Chuyển đổi từ Node.js
-
-Code này được chuyển đổi hoàn toàn từ:
-
-- Node.js/Fastify → Python/Flask
-- Prisma → SQLAlchemy
-- Zod → Validation trong services
-- Socket.IO giữ nguyên (Flask-SocketIO)
-
-Tất cả tính năng đã được chuyển đổi 100%!
 
 ## 🌐 Frontend Integration
 
