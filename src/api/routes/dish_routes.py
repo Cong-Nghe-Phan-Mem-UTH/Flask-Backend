@@ -30,7 +30,11 @@ def get_dish_detail(id):
 @pause_api_check
 @require_owner_or_employee
 def create_dish():
-    return create_dish_service(request.json)
+    body = request.get_json()
+    if not body:
+        from domain.exceptions import EntityError
+        raise EntityError([{'field': 'body', 'message': 'Dữ liệu không hợp lệ'}])
+    return create_dish_service(body)
 
 @dish_bp.route('/<int:id>', methods=['PUT'])
 @require_logined

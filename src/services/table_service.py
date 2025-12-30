@@ -11,10 +11,12 @@ def get_table_list_service():
     session = get_session()
     try:
         tables = session.query(TableModel).order_by(TableModel.created_at.desc()).all()
-        return jsonify({
+        response = jsonify({
             'data': [table.to_dict() for table in tables],
             'message': 'Lấy danh sách bàn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -23,10 +25,12 @@ def get_table_detail_service(table_number):
     session = get_session()
     try:
         table = session.query(TableModel).get_or_404(table_number)
-        return jsonify({
+        response = jsonify({
             'data': table.to_dict(),
             'message': 'Lấy thông tin bàn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -34,23 +38,31 @@ def create_table_service(body):
     """Create table"""
     session = get_session()
     try:
+        if not body:
+            raise EntityError([{'field': 'body', 'message': 'Dữ liệu không hợp lệ'}])
+        
         token = random_id()
         table = TableModel(
-            number=body['number'],
-            capacity=body['capacity'],
+            number=body.get('number'),
+            capacity=body.get('capacity', 2),
             status=body.get('status', 'Available'),
             token=token
         )
         session.add(table)
         session.commit()
         session.refresh(table)
-        return jsonify({
+        response = jsonify({
             'data': table.to_dict(),
             'message': 'Tạo bàn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     except IntegrityError:
         session.rollback()
         raise EntityError([{'field': 'number', 'message': 'Số bàn này đã tồn tại'}])
+    except Exception as e:
+        session.rollback()
+        raise
     finally:
         session.close()
 
@@ -73,10 +85,12 @@ def update_table_service(table_number, body):
         table.capacity = body.get('capacity', table.capacity)
         session.commit()
         session.refresh(table)
-        return jsonify({
+        response = jsonify({
             'data': table.to_dict(),
             'message': 'Cập nhật bàn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -87,10 +101,12 @@ def delete_table_service(table_number):
         table = session.query(TableModel).get_or_404(table_number)
         session.delete(table)
         session.commit()
-        return jsonify({
+        response = jsonify({
             'data': table.to_dict(),
             'message': 'Xóa bàn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 

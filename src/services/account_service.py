@@ -16,10 +16,12 @@ def get_account_list_service():
     session = get_session()
     try:
         accounts = session.query(AccountModel).order_by(AccountModel.created_at.desc()).all()
-        return jsonify({
+        response = jsonify({
             'data': [acc.to_dict() for acc in accounts],
             'message': 'Lấy danh sách nhân viên thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -41,10 +43,12 @@ def create_employee_account_service(body):
         session.add(account)
         session.commit()
         session.refresh(account)
-        return jsonify({
+        response = jsonify({
             'data': account.to_dict(),
             'message': 'Tạo tài khoản thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     except IntegrityError:
         session.rollback()
         raise EntityError([{'field': 'email', 'message': 'Email đã tồn tại'}])
@@ -56,10 +60,12 @@ def get_employee_account_service(account_id):
     session = get_session()
     try:
         account = session.query(AccountModel).get_or_404(account_id)
-        return jsonify({
+        response = jsonify({
             'data': account.to_dict(),
             'message': 'Lấy thông tin nhân viên thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -93,10 +99,12 @@ def update_employee_account_service(account_id, body):
         if is_change_role and socket_record:
             emit_to_socket(socket_record.socket_id, 'refresh-token', old_account.to_dict())
         
-        return jsonify({
+        response = jsonify({
             'data': old_account.to_dict(),
             'message': 'Cập nhật thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     except IntegrityError:
         session.rollback()
         raise EntityError([{'field': 'email', 'message': 'Email đã tồn tại'}])
@@ -117,10 +125,12 @@ def delete_employee_account_service(account_id):
         if socket_record:
             emit_to_socket(socket_record.socket_id, 'logout', account_dict)
         
-        return jsonify({
+        response = jsonify({
             'data': account_dict,
             'message': 'Xóa thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -128,11 +138,20 @@ def get_me_service():
     """Get current user info"""
     session = get_session()
     try:
-        account = session.query(AccountModel).get_or_404(g.current_user_id)
-        return jsonify({
+        user_id = getattr(g, 'current_user_id', None)
+        if not user_id:
+            from domain.exceptions import AuthError
+            raise AuthError('Không tìm thấy thông tin người dùng')
+        account = session.query(AccountModel).filter_by(id=user_id).first()
+        if not account:
+            from flask import abort
+            abort(404)
+        response = jsonify({
             'data': account.to_dict(),
             'message': 'Lấy thông tin thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -145,10 +164,12 @@ def update_me_service(body):
         account.avatar = body.get('avatar', account.avatar)
         session.commit()
         session.refresh(account)
-        return jsonify({
+        response = jsonify({
             'data': account.to_dict(),
             'message': 'Cập nhật thông tin thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -167,10 +188,12 @@ def change_password_service(body):
         account.password = hash_password(body['password'])
         session.commit()
         session.refresh(account)
-        return jsonify({
+        response = jsonify({
             'data': account.to_dict(),
             'message': 'Đổi mật khẩu thành công'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -213,14 +236,16 @@ def change_password_v2_service(body):
         session.commit()
         session.refresh(account)
         
-        return jsonify({
+        response = jsonify({
             'message': 'Đổi mật khẩu thành công',
             'data': {
                 'account': account.to_dict(),
                 'accessToken': access_token,
                 'refreshToken': refresh_token
             }
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -238,10 +263,12 @@ def get_guest_list_service(from_date=None, to_date=None):
             query = query.filter(GuestModel.created_at <= to_date)
         
         guests = query.order_by(GuestModel.created_at.desc()).all()
-        return jsonify({
+        response = jsonify({
             'message': 'Lấy danh sách khách thành công',
             'data': [g.to_dict() for g in guests]
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -268,10 +295,12 @@ def create_guest_service(body):
         session.commit()
         session.refresh(guest)
         
-        return jsonify({
+        response = jsonify({
             'message': 'Tạo tài khoản khách thành công',
             'data': {**guest.to_dict(), 'role': Role.Guest}
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 

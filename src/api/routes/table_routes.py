@@ -23,7 +23,11 @@ def get_table_detail(number):
 @pause_api_check
 @require_owner_or_employee
 def create_table():
-    return create_table_service(request.json)
+    body = request.get_json()
+    if not body:
+        from domain.exceptions import EntityError
+        raise EntityError([{'field': 'body', 'message': 'Dữ liệu không hợp lệ'}])
+    return create_table_service(body)
 
 @table_bp.route('/<int:number>', methods=['PUT'])
 @require_logined

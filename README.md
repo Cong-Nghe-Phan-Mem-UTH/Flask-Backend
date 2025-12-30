@@ -265,3 +265,5 @@ CORS(app, origins='*', supports_credentials=True)
 ```
 
 **Frontend API URL:** Đảm bảo frontend config trỏ đến `http://localhost:4000`
+chayj be va fe cung luc : cd /Users/mac/Documents/project_cnpm/Flask-BackEnd
+./scripts/start_dev.sh

@@ -77,5 +77,7 @@ def setup_middleware(app):
     """Setup middleware for the app"""
     @app.before_request
     def before_request():
-        pass
+        # Skip authentication for OPTIONS requests (CORS preflight)
+        if request.method == 'OPTIONS':
+            return
 

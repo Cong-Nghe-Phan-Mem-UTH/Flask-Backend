@@ -51,18 +51,14 @@ def get_dish_list_service():
         session.close()
 
 def get_dish_list_with_pagination_service(page, limit):
-    """Get dishes with pagination"""
+    """Get dishes with pagination (for manage page - shows all dishes)"""
     session = get_session()
     try:
         offset = (page - 1) * limit
-        # Only get dishes with status 'Available'
-        dishes = session.query(DishModel).filter(
-            DishModel.status == 'Available'
-        ).order_by(DishModel.created_at.desc()).offset(offset).limit(limit).all()
+        # Get all dishes (for manage page, not filtered by status)
+        dishes = session.query(DishModel).order_by(DishModel.created_at.desc()).offset(offset).limit(limit).all()
         
-        total_item = session.query(DishModel).filter(
-            DishModel.status == 'Available'
-        ).count()
+        total_item = session.query(DishModel).count()
         total_page = (total_item + limit - 1) // limit
         
         # Format dishes with full image URLs
@@ -89,9 +85,12 @@ def get_dish_list_with_pagination_service(page, limit):
 
 def get_dish_detail_service(dish_id):
     """Get dish detail"""
+    from flask import abort
     session = get_session()
     try:
-        dish = session.query(DishModel).get_or_404(dish_id)
+        dish = session.query(DishModel).filter_by(id=dish_id).first()
+        if not dish:
+            abort(404)
         dish_dict = dish.to_dict()
         dish_dict['image'] = _format_image_url(dish_dict['image'])
         response = jsonify({
@@ -107,11 +106,23 @@ def create_dish_service(body):
     """Create dish"""
     session = get_session()
     try:
+        if not body:
+            from domain.exceptions import EntityError
+            raise EntityError([{'field': 'body', 'message': 'Dữ liệu không hợp lệ'}])
+        
+        # Validate required fields
+        if not body.get('name'):
+            from domain.exceptions import EntityError
+            raise EntityError([{'field': 'name', 'message': 'Tên món ăn không được để trống'}])
+        if not body.get('price') or body.get('price', 0) <= 0:
+            from domain.exceptions import EntityError
+            raise EntityError([{'field': 'price', 'message': 'Giá phải lớn hơn 0'}])
+        
         dish = DishModel(
-            name=body['name'],
-            price=body['price'],
-            description=body['description'],
-            image=body['image'],
+            name=body.get('name', ''),
+            price=int(body.get('price', 0)),
+            description=body.get('description', ''),
+            image=body.get('image') or '',
             status=body.get('status', 'Available')
         )
         session.add(dish)
@@ -119,10 +130,15 @@ def create_dish_service(body):
         session.refresh(dish)
         dish_dict = dish.to_dict()
         dish_dict['image'] = _format_image_url(dish_dict['image'])
-        return jsonify({
+        response = jsonify({
             'data': dish_dict,
             'message': 'Tạo món ăn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
+    except Exception as e:
+        session.rollback()
+        raise
     finally:
         session.close()
 
@@ -140,10 +156,12 @@ def update_dish_service(dish_id, body):
         session.refresh(dish)
         dish_dict = dish.to_dict()
         dish_dict['image'] = _format_image_url(dish_dict['image'])
-        return jsonify({
+        response = jsonify({
             'data': dish_dict,
             'message': 'Cập nhật món ăn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 
@@ -154,10 +172,12 @@ def delete_dish_service(dish_id):
         dish = session.query(DishModel).get_or_404(dish_id)
         session.delete(dish)
         session.commit()
-        return jsonify({
+        response = jsonify({
             'data': dish.to_dict(),
             'message': 'Xóa món ăn thành công!'
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     finally:
         session.close()
 

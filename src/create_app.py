@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from config import Config
 from api.routes import register_routes
@@ -17,6 +17,22 @@ def create_app():
     # Ensure UTF-8 encoding for responses
     app.config['JSON_AS_ASCII'] = False  # Allow non-ASCII characters in JSON
     
+    # CORS - Configure with all necessary options
+    CORS(app, 
+         resources={
+             r"/*": {
+                 "origins": "*",
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+                 "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+                 "expose_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True,
+                 "max_age": 3600
+             }
+         })
+    
+    # Disable strict slashes to prevent 308 redirects
+    app.url_map.strict_slashes = False
+    
     @app.after_request
     def after_request(response):
         # Set charset to UTF-8 for all responses
@@ -27,9 +43,6 @@ def create_app():
             elif 'text/html' in content_type:
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
         return response
-    
-    # CORS
-    CORS(app, origins='*', supports_credentials=True)
     
     # Setup middleware
     setup_middleware(app)
