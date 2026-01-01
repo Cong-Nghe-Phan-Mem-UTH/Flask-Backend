@@ -47,14 +47,16 @@ def login_service(body):
         session.add(refresh_token_obj)
         session.commit()
         
-        return jsonify({
+        response = jsonify({
             "message": "Đăng nhập thành công",
             "data": {
                 "account": account.to_dict(),
                 "accessToken": access_token,
                 "refreshToken": refresh_token
             }
-        }), 200
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 200
     except Exception as e:
         session.rollback()
         raise e

@@ -57,9 +57,12 @@ def create_employee_account_service(body):
 
 def get_employee_account_service(account_id):
     """Get employee account by ID"""
+    from flask import abort
     session = get_session()
     try:
-        account = session.query(AccountModel).get_or_404(account_id)
+        account = session.query(AccountModel).get(account_id)
+        if not account:
+            abort(404)
         response = jsonify({
             'data': account.to_dict(),
             'message': 'Lấy thông tin nhân viên thành công'
@@ -113,10 +116,13 @@ def update_employee_account_service(account_id, body):
 
 def delete_employee_account_service(account_id):
     """Delete employee account"""
+    from flask import abort
     session = get_session()
     try:
         socket_record = session.query(SocketModel).filter_by(account_id=account_id).first()
-        account = session.query(AccountModel).get_or_404(account_id)
+        account = session.query(AccountModel).get(account_id)
+        if not account:
+            abort(404)
         account_dict = account.to_dict()
         session.delete(account)
         session.commit()
@@ -157,9 +163,12 @@ def get_me_service():
 
 def update_me_service(body):
     """Update current user info"""
+    from flask import abort
     session = get_session()
     try:
-        account = session.query(AccountModel).get_or_404(g.current_user_id)
+        account = session.query(AccountModel).get(g.current_user_id)
+        if not account:
+            abort(404)
         account.name = body.get('name', account.name)
         account.avatar = body.get('avatar', account.avatar)
         session.commit()
@@ -175,12 +184,15 @@ def update_me_service(body):
 
 def change_password_service(body):
     """Change password"""
+    from flask import abort
     session = get_session()
     try:
         if body.get('password') != body.get('confirmPassword'):
             raise EntityError([{'field': 'confirmPassword', 'message': 'Mật khẩu mới không khớp'}])
         
-        account = session.query(AccountModel).get_or_404(g.current_user_id)
+        account = session.query(AccountModel).get(g.current_user_id)
+        if not account:
+            abort(404)
         
         if not compare_password(body['oldPassword'], account.password):
             raise EntityError([{'field': 'oldPassword', 'message': 'Mật khẩu cũ không đúng'}])
@@ -199,12 +211,15 @@ def change_password_service(body):
 
 def change_password_v2_service(body):
     """Change password v2 (with new tokens)"""
+    from flask import abort
     session = get_session()
     try:
         if body.get('password') != body.get('confirmPassword'):
             raise EntityError([{'field': 'confirmPassword', 'message': 'Mật khẩu mới không khớp'}])
         
-        account = session.query(AccountModel).get_or_404(g.current_user_id)
+        account = session.query(AccountModel).get(g.current_user_id)
+        if not account:
+            abort(404)
         
         if not compare_password(body['oldPassword'], account.password):
             raise EntityError([{'field': 'oldPassword', 'message': 'Mật khẩu cũ không đúng'}])

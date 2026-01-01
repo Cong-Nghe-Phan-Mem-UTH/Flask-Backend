@@ -22,9 +22,12 @@ def get_table_list_service():
 
 def get_table_detail_service(table_number):
     """Get table detail"""
+    from flask import abort
     session = get_session()
     try:
-        table = session.query(TableModel).get_or_404(table_number)
+        table = session.query(TableModel).get(table_number)
+        if not table:
+            abort(404)
         response = jsonify({
             'data': table.to_dict(),
             'message': 'Lấy thông tin bàn thành công!'
@@ -68,9 +71,12 @@ def create_table_service(body):
 
 def update_table_service(table_number, body):
     """Update table"""
+    from flask import abort
     session = get_session()
     try:
-        table = session.query(TableModel).get_or_404(table_number)
+        table = session.query(TableModel).get(table_number)
+        if not table:
+            abort(404)
         
         if body.get('changeToken'):
             token = random_id()
@@ -96,9 +102,12 @@ def update_table_service(table_number, body):
 
 def delete_table_service(table_number):
     """Delete table"""
+    from flask import abort
     session = get_session()
     try:
-        table = session.query(TableModel).get_or_404(table_number)
+        table = session.query(TableModel).get(table_number)
+        if not table:
+            abort(404)
         session.delete(table)
         session.commit()
         response = jsonify({

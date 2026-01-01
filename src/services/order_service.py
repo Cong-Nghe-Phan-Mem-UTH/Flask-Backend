@@ -15,11 +15,16 @@ def create_orders_service(body):
         guest_id = body['guestId']
         orders_data = body['orders']
         
-        guest = session.query(GuestModel).get_or_404(guest_id)
+        from flask import abort
+        guest = session.query(GuestModel).get(guest_id)
+        if not guest:
+            abort(404)
         if guest.table_number is None:
             raise ValueError('Bàn gắn liền với khách hàng này đã bị xóa, vui lòng chọn khách hàng khác!')
         
-        table = session.query(TableModel).get_or_404(guest.table_number)
+        table = session.query(TableModel).get(guest.table_number)
+        if not table:
+            abort(404)
         if table.status == TableStatus.Hidden:
             raise ValueError(f'Bàn {table.number} gắn liền với khách hàng đã bị ẩn, vui lòng chọn khách hàng khác!')
         
@@ -28,7 +33,9 @@ def create_orders_service(body):
         
         orders = []
         for order_data in orders_data:
-            dish = session.query(DishModel).get_or_404(order_data['dishId'])
+            dish = session.query(DishModel).get(order_data['dishId'])
+            if not dish:
+                abort(404)
             
             if dish.status == DishStatus.Unavailable:
                 raise ValueError(f'Món {dish.name} đã hết')
@@ -99,9 +106,12 @@ def get_orders_service(from_date=None, to_date=None):
 
 def get_order_detail_service(order_id):
     """Get order detail"""
+    from flask import abort
     session = get_session()
     try:
-        order = session.query(OrderModel).get_or_404(order_id)
+        order = session.query(OrderModel).get(order_id)
+        if not order:
+            abort(404)
         return jsonify({
             'message': 'Lấy đơn hàng thành công',
             'data': order.to_dict()
@@ -111,16 +121,21 @@ def get_order_detail_service(order_id):
 
 def update_order_service(order_id, body):
     """Update order"""
+    from flask import abort
     session = get_session()
     try:
-        order = session.query(OrderModel).get_or_404(order_id)
+        order = session.query(OrderModel).get(order_id)
+        if not order:
+            abort(404)
         status = body.get('status')
         dish_id = body.get('dishId')
         quantity = body.get('quantity')
         
         dish_snapshot_id = order.dish_snapshot_id
         if dish_id and order.dish_snapshot.dish_id != dish_id:
-            dish = session.query(DishModel).get_or_404(dish_id)
+            dish = session.query(DishModel).get(dish_id)
+            if not dish:
+                abort(404)
             dish_snapshot = DishSnapshotModel(
                 name=dish.name,
                 price=dish.price,

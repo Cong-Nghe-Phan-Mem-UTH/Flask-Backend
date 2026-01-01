@@ -207,6 +207,9 @@ Server hỗ trợ Socket.IO cho real-time communication:
 - `new-order` - Khi có đơn hàng mới
 - `update-order` - Khi cập nhật đơn hàng
 - `payment` - Khi thanh toán
+- `new-dish` - Khi có món ăn mới (data: dish object)
+- `update-dish` - Khi cập nhật món ăn (data: dish object)
+- `delete-dish` - Khi xóa món ăn (data: {id: dish_id})
 - `refresh-token` - Khi refresh token (khi đổi role)
 - `logout` - Khi logout
 

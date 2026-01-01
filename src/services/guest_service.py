@@ -80,9 +80,12 @@ def guest_login_service(body):
 
 def guest_logout_service():
     """Guest logout"""
+    from flask import abort
     session = get_session()
     try:
-        guest = session.query(GuestModel).get_or_404(g.current_user_id)
+        guest = session.query(GuestModel).get(g.current_user_id)
+        if not guest:
+            abort(404)
         guest.refresh_token = None
         guest.refresh_token_expires_at = None
         session.commit()
@@ -134,14 +137,19 @@ def guest_refresh_token_service(refresh_token):
 
 def guest_create_orders_service(body):
     """Guest create orders"""
+    from flask import abort
     session = get_session()
     try:
-        guest = session.query(GuestModel).get_or_404(g.current_user_id)
+        guest = session.query(GuestModel).get(g.current_user_id)
+        if not guest:
+            abort(404)
         
         if guest.table_number is None:
             raise ValueError('Bàn của bạn đã bị xóa, vui lòng đăng xuất và đăng nhập lại một bàn mới')
         
-        table = session.query(TableModel).get_or_404(guest.table_number)
+        table = session.query(TableModel).get(guest.table_number)
+        if not table:
+            abort(404)
         
         if table.status == TableStatus.Hidden:
             raise ValueError(f'Bàn {table.number} đã bị ẩn, vui lòng đăng xuất và chọn bàn khác')
@@ -151,7 +159,9 @@ def guest_create_orders_service(body):
         
         orders = []
         for order_data in body:
-            dish = session.query(DishModel).get_or_404(order_data['dishId'])
+            dish = session.query(DishModel).get(order_data['dishId'])
+            if not dish:
+                abort(404)
             
             if dish.status == DishStatus.Unavailable:
                 raise ValueError(f'Món {dish.name} đã hết')
