@@ -11,13 +11,16 @@ from plugins.socket_plugin import init_socketio, setup_socket_handlers
 import os
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None, static_url_path=None)  # Disable Flask's default static folder and URL path
     app.config.from_object(Config)
+    
+    # Set max content length for file uploads
+    app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
     
     # Ensure UTF-8 encoding for responses
     app.config['JSON_AS_ASCII'] = False  # Allow non-ASCII characters in JSON
     
-    # CORS - Configure with all necessary options
+    # CORS - Configure with all necessary options (including file uploads)
     CORS(app, 
          resources={
              r"/*": {
@@ -42,6 +45,7 @@ def create_app():
                 response.headers['Content-Type'] = 'application/json; charset=utf-8'
             elif 'text/html' in content_type:
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        # Note: CORS headers are handled by flask_cors.CORS above, don't add them here to avoid duplicates
         return response
     
     # Setup middleware
@@ -61,8 +65,14 @@ def create_app():
     upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
     create_folder(upload_folder)
     
-    # Register routes
+    # Register routes (static route is registered first in register_routes)
     register_routes(app)
+    
+    # Verify static route is registered correctly
+    print("📋 Registered routes:")
+    for rule in app.url_map.iter_rules():
+        if '/static' in rule.rule:
+            print(f"  - {rule.rule} -> {rule.endpoint}")
     
     # Start background jobs
     start_scheduler()

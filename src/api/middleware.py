@@ -9,6 +9,11 @@ def require_logined(f):
     """Middleware to require login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Skip authentication for OPTIONS requests (CORS preflight)
+        if request.method == 'OPTIONS':
+            from flask import Response
+            return Response(status=200)
+        
         auth_header = request.headers.get('Authorization')
         if not auth_header:
             raise AuthError('Không nhận được access token')
@@ -68,6 +73,11 @@ def pause_api_check(f):
     """Check if API is paused"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Skip check for OPTIONS requests (CORS preflight)
+        if request.method == 'OPTIONS':
+            from flask import Response
+            return Response(status=200)
+        
         if Config.PAUSE_SOME_ENDPOINTS:
             raise ForbiddenError('Chức năng bị tạm ngưng')
         return f(*args, **kwargs)
