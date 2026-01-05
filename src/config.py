@@ -38,6 +38,8 @@ class Config:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
     _upload_folder = os.environ.get('UPLOAD_FOLDER', 'uploads')
     UPLOAD_FOLDER = os.path.join(_base_dir, _upload_folder) if not os.path.isabs(_upload_folder) else _upload_folder
+    # Max file upload size (default 16MB, can be overridden via env)
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
     
     # Client
     CLIENT_URL = os.environ.get('CLIENT_URL', 'http://localhost:3000')

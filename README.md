@@ -115,6 +115,22 @@ chmod +x scripts/start_dev.sh
 
 **Windows:**
 
+**Option 1: Chạy trong cùng terminal (tương tự MacOS/Linux):**
+
+```cmd
+cd Flask-BackEnd
+scripts\start_dev_same_terminal.bat
+```
+
+**Option 2: Sử dụng PowerShell:**
+
+```powershell
+cd Flask-BackEnd
+powershell -ExecutionPolicy Bypass -File scripts\start_dev.ps1
+```
+
+**Option 3: Mở 2 cửa sổ riêng biệt (dễ theo dõi output):**
+
 ```cmd
 cd Flask-BackEnd
 scripts\start_dev.bat
@@ -185,6 +201,96 @@ Xem thêm chi tiết trong [DEVELOPMENT.md](./DEVELOPMENT.md)
 ### Media
 
 - `POST /media/upload` - Upload ảnh (Owner/Employee)
+
+**Cách sử dụng:**
+
+1. **Từ Frontend (JavaScript/React):**
+
+```javascript
+// Tạo FormData với file
+const formData = new FormData();
+formData.append("file", fileInput.files[0]); // hoặc 'image', 'avatar'
+
+// Gửi request
+const response = await fetch("http://localhost:4000/media/upload", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    // KHÔNG set Content-Type header, browser sẽ tự động set multipart/form-data
+  },
+  body: formData,
+});
+
+const result = await response.json();
+console.log(result.data); // URL của ảnh: http://localhost:4000/static/filename.jpg
+```
+
+**Ví dụ với React:**
+
+```jsx
+const handleImageUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch("http://localhost:4000/media/upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      // Sử dụng URL ảnh
+      const imageUrl = result.data;
+      console.log("Upload thành công:", imageUrl);
+      // Có thể dùng imageUrl để cập nhật avatar hoặc ảnh món ăn
+    }
+  } catch (error) {
+    console.error("Lỗi upload:", error);
+  }
+};
+
+// Trong component
+<input type="file" accept="image/*" onChange={handleImageUpload} />;
+```
+
+2. **Test bằng cURL:**
+
+```bash
+curl -X POST http://localhost:4000/media/upload \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "file=@/path/to/your/image.jpg"
+```
+
+3. **Test bằng Postman:**
+   - Method: `POST`
+   - URL: `http://localhost:4000/media/upload`
+   - Headers: `Authorization: Bearer YOUR_ACCESS_TOKEN`
+   - Body: chọn `form-data`
+   - Key: `file` (type: File)
+   - Value: chọn file ảnh
+
+**Response:**
+
+```json
+{
+  "message": "Upload ảnh thành công",
+  "data": "http://localhost:4000/static/abc123def456.jpg"
+}
+```
+
+**Lưu ý:**
+
+- File field name có thể là: `file`, `image`, hoặc `avatar`
+- Định dạng hỗ trợ: png, jpg, jpeg, gif, webp
+- Giới hạn kích thước: 10MB
+- Cần đăng nhập với quyền Owner hoặc Employee
 
 ### Static
 

@@ -13,7 +13,21 @@ dish_bp = Blueprint('dish', __name__, url_prefix='/dishes')
 
 @dish_bp.route('/', methods=['GET'])
 def get_dish_list():
-    return get_dish_list_service()
+    # Check if request has authentication (from manage page)
+    has_auth = request.headers.get('Authorization') is not None
+    
+    # If authenticated (from manage page), show all dishes by default
+    # Otherwise (public page), only show Available dishes
+    if has_auth:
+        # For manage page: show all dishes by default, but allow query params to override
+        show_all = request.args.get('showAll', 'true').lower() == 'true'  # Default to true for manage page
+        include_unavailable = request.args.get('includeUnavailable', 'true').lower() == 'true'  # Default to true
+    else:
+        # For public page: only show Available by default
+        show_all = request.args.get('showAll', 'false').lower() == 'true'
+        include_unavailable = request.args.get('includeUnavailable', 'false').lower() == 'true'
+    
+    return get_dish_list_service(show_all=show_all, include_unavailable=include_unavailable)
 
 @dish_bp.route('/pagination', methods=['GET'])
 def get_dish_list_with_pagination():
@@ -41,7 +55,11 @@ def create_dish():
 @pause_api_check
 @require_owner_or_employee
 def update_dish(id):
-    return update_dish_service(id, request.json)
+    body = request.get_json()
+    if not body:
+        from domain.exceptions import EntityError
+        raise EntityError([{'field': 'body', 'message': 'Dữ liệu không hợp lệ'}])
+    return update_dish_service(id, body)
 
 @dish_bp.route('/<int:id>', methods=['DELETE'])
 @require_logined

@@ -1,6 +1,8 @@
 from flask import jsonify
 from domain.exceptions import EntityError, AuthError, ForbiddenError, StatusError
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import RequestEntityTooLarge
+import os
 
 def setup_error_handler(app):
     """Setup error handler for the app"""
@@ -53,12 +55,42 @@ def setup_error_handler(app):
     
     @app.errorhandler(404)
     def handle_not_found(error):
+        # Don't handle 404 for static files - let custom route handle them
+        from flask import request
+        print(f"🔴 404 Error Handler: path={request.path}")
+        app.logger.info(f"🔴 404 Error Handler: path={request.path}")
+        
+        if request.path.startswith('/static/'):
+            # Don't handle static file 404s - let the custom route handle it
+            print(f"🔴 Static file 404 - passing through to custom route")
+            app.logger.info(f"🔴 Static file 404 - passing through to custom route")
+            # Return a proper 404 response for static files (custom route should handle it)
+            from werkzeug.exceptions import NotFound
+            # Let Flask's default 404 handling work, but return JSON for static files
+            response = jsonify({
+                'message': f'File not found: {os.path.basename(request.path)}',
+                'statusCode': 404
+            })
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response, 404
         response = jsonify({
             'message': 'Không tìm thấy dữ liệu',
             'statusCode': 404
         })
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
         return response, 404
+    
+    @app.errorhandler(RequestEntityTooLarge)
+    def handle_request_entity_too_large(error):
+        from config import Config
+        max_size_mb = Config.MAX_CONTENT_LENGTH / (1024 * 1024)
+        response = jsonify({
+            'message': f'File quá lớn. Giới hạn là {max_size_mb:.1f}MB',
+            'statusCode': 413,
+            'errors': [{'field': 'file', 'message': f'File quá lớn. Giới hạn là {max_size_mb:.1f}MB'}]
+        })
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response, 413
     
     @app.errorhandler(Exception)
     def handle_generic_error(error):

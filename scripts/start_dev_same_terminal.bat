@@ -1,7 +1,6 @@
 @echo off
-REM Script to start both Flask backend and Next.js frontend (Windows)
-REM This script opens separate windows for backend and frontend
-REM For running in the same terminal, use start_dev.ps1 (PowerShell)
+REM Script to start both Flask backend and Next.js frontend in the same terminal (Windows)
+REM This version runs both processes in the background of the same terminal
 
 echo 🚀 Starting development servers...
 echo.
@@ -38,9 +37,9 @@ if errorlevel 1 (
     pip install -r requirements.txt
 )
 
-REM Start Flask backend in new window
+REM Start Flask backend in background
 echo 📦 Starting Flask backend...
-start "Flask Backend" cmd /k "cd /d %BACKEND_DIR% && .venv\Scripts\activate.bat && python app.py"
+start /b "" cmd /c "cd /d %BACKEND_DIR% && .venv\Scripts\activate.bat && python app.py"
 
 REM Wait a bit for backend to start
 timeout /t 3 /nobreak >nul
@@ -52,9 +51,9 @@ if not exist "%FRONTEND_DIR%\node_modules" (
     call npm install
 )
 
-REM Start Next.js frontend in new window
+REM Start Next.js frontend in background
 echo 🌐 Starting Next.js frontend...
-start "Next.js Frontend" cmd /k "cd /d %FRONTEND_DIR% && npm run dev"
+start /b "" cmd /c "cd /d %FRONTEND_DIR% && npm run dev"
 
 echo.
 echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -64,9 +63,13 @@ echo Backend:  http://localhost:4000
 echo Frontend: http://localhost:3000
 echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 echo.
-echo Close the windows to stop the servers
+echo Press Ctrl+C to stop all servers
+echo Note: Output from both servers will appear in this terminal
 echo.
-echo 💡 Tip: For running in the same terminal, use PowerShell:
-echo    powershell -ExecutionPolicy Bypass -File scripts\start_dev.ps1
-pause
+
+REM Keep the script running
+:loop
+timeout /t 1 /nobreak >nul
+goto loop
+
 

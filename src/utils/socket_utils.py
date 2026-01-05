@@ -6,6 +6,9 @@ def emit_to_manager(event, data):
     socketio = get_socketio()
     if socketio:
         socketio.emit(event, data, room=ManagerRoom)
+        print(f"📡 Emitted '{event}' to manager room: {data}")
+    else:
+        print(f"⚠️  SocketIO not available, cannot emit '{event}'")
 
 def emit_to_socket(socket_id, event, data):
     """Emit event to specific socket"""

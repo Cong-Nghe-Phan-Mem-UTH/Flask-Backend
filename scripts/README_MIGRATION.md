@@ -68,3 +68,4 @@ python3 scripts/migrate_data.py
 - Script đã xử lý mapping IDs tự động
 - Nếu vẫn lỗi, có thể do dữ liệu không hợp lệ trong SQLite
 
+

@@ -12,7 +12,7 @@ class DishModel(Base):
     name = Column(UnicodeString(255), nullable=False)
     price = Column(Integer, nullable=False)
     description = Column(UnicodeString(1000), nullable=False)
-    image = Column(UnicodeString(500), nullable=False)
+    image = Column(UnicodeString(500), nullable=True)  # Allow null for dishes without images
     status = Column(UnicodeString(50), default='Available')
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -40,7 +40,7 @@ class DishSnapshotModel(Base):
     name = Column(UnicodeString(255), nullable=False)
     price = Column(Integer, nullable=False)
     description = Column(UnicodeString(1000), nullable=False)
-    image = Column(UnicodeString(500), nullable=False)
+    image = Column(UnicodeString(500), nullable=True)  # Allow null for dishes without images
     status = Column(UnicodeString(50), default='Available')
     dish_id = Column(Integer, ForeignKey('Dish.id'), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -6,3 +6,4 @@ source .venv/bin/activate
 cd ..
 python3 scripts/fix_encoding.py
 
+

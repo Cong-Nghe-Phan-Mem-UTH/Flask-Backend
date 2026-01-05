@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from infrastructure.databases.base import Base
+from infrastructure.databases.base import Base, UnicodeString
 from datetime import datetime
 
 class GuestModel(Base):
@@ -8,7 +8,8 @@ class GuestModel(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
+    # Use UnicodeString (NVARCHAR for MSSQL) to support Vietnamese characters
+    name = Column(UnicodeString(255), nullable=False)
     table_number = Column(Integer, ForeignKey('Table.number'), nullable=True)
     refresh_token = Column(String(500), nullable=True)
     refresh_token_expires_at = Column(DateTime, nullable=True)

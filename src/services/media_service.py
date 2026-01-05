@@ -12,17 +12,54 @@ def allowed_file(filename):
 def upload_image_service():
     """Upload image"""
     try:
-        current_app.logger.info(f"📤 Upload request - Content-Type: {request.content_type}")
-        current_app.logger.info(f"📤 Upload request - Files: {list(request.files.keys())}")
-
-        if 'file' not in request.files:
-            from domain.exceptions import EntityError
-            raise EntityError([{'field': 'file', 'message': 'Không tìm thấy file'}])
+        # Enhanced logging
+        print(f"📤 Upload request - Content-Type: {request.content_type}")
+        print(f"📤 Upload request - Method: {request.method}")
+        print(f"📤 Upload request - Has files: {bool(request.files)}")
+        print(f"📤 Upload request - Files keys: {list(request.files.keys()) if request.files else []}")
+        print(f"📤 Upload request - Form keys: {list(request.form.keys()) if request.form else []}")
+        print(f"📤 Upload request - Is JSON: {request.is_json}")
+        print(f"📤 Upload request - Content Length: {request.content_length}")
         
-        file = request.files['file']
+        current_app.logger.info(f"📤 Upload request - Content-Type: {request.content_type}")
+        current_app.logger.info(f"📤 Upload request - Method: {request.method}")
+        current_app.logger.info(f"📤 Upload request - Has files: {bool(request.files)}")
+        current_app.logger.info(f"📤 Upload request - Files keys: {list(request.files.keys()) if request.files else []}")
+        current_app.logger.info(f"📤 Upload request - Form keys: {list(request.form.keys()) if request.form else []}")
+        
+        # Check if request has files
+        if not request.files:
+            from domain.exceptions import EntityError
+            raise EntityError([{'field': 'file', 'message': 'Không tìm thấy file trong request. Vui lòng gửi file dưới dạng multipart/form-data'}])
+        
+        # Try to get file - check common field names
+        file = None
+        file_field_name = None
+        
+        # Check for 'file' field first (most common)
+        if 'file' in request.files:
+            file = request.files['file']
+            file_field_name = 'file'
+        # Check for 'image' field
+        elif 'image' in request.files:
+            file = request.files['image']
+            file_field_name = 'image'
+        # Check for 'avatar' field
+        elif 'avatar' in request.files:
+            file = request.files['avatar']
+            file_field_name = 'avatar'
+        # Try to get first file if no standard field name
+        elif len(request.files) > 0:
+            file_field_name = list(request.files.keys())[0]
+            file = request.files[file_field_name]
+        
+        if not file:
+            from domain.exceptions import EntityError
+            raise EntityError([{'field': 'file', 'message': 'Không tìm thấy file trong request. Vui lòng gửi file với field name là "file", "image", hoặc "avatar"'}])
+        
         if file.filename == '':
             from domain.exceptions import EntityError
-            raise EntityError([{'field': 'file', 'message': 'Không tìm thấy file'}])
+            raise EntityError([{'field': 'file', 'message': 'Tên file trống. Vui lòng chọn file để upload'}])
         
         if not allowed_file(file.filename):
             from domain.exceptions import EntityError
@@ -73,9 +110,20 @@ def upload_image_service():
         return response, 200
     except Exception as e:
         current_app.logger.error(f"❌ Error in upload_image_service: {str(e)}")
+        current_app.logger.error(f"❌ Error type: {type(e).__name__}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        
         # Re-raise EntityError as is
         if isinstance(e, Exception) and hasattr(e, 'errors'):
             raise
+        
+        # Handle specific Flask errors
+        from werkzeug.exceptions import RequestEntityTooLarge
+        if isinstance(e, RequestEntityTooLarge):
+            from domain.exceptions import EntityError
+            raise EntityError([{'field': 'file', 'message': f'File quá lớn. Giới hạn là {Config.MAX_CONTENT_LENGTH / (1024*1024):.1f}MB'}])
+        
         # Convert other errors to EntityError
         from domain.exceptions import EntityError
         raise EntityError([{'field': 'file', 'message': f'Lỗi upload: {str(e)}'}])

@@ -88,6 +88,38 @@ def create_orders_service(body):
 
 def get_orders_service(from_date=None, to_date=None):
     """Get orders"""
+    from infrastructure.models.dish_model import DishSnapshotModel
+    from config import Config
+    
+    def _format_image_url(image_path):
+        """Format image URL to full URL if needed"""
+        if not image_path:
+            return None
+        
+        # If already a full URL, normalize it first (extract filename)
+        if image_path.startswith('http://') or image_path.startswith('https://'):
+            # Extract filename from URL (normalize production URLs to filename)
+            if '/static/' in image_path:
+                normalized_path = image_path.split('/static/')[-1]
+            else:
+                # Try to extract last part of URL
+                normalized_path = image_path.split('/')[-1]
+        else:
+            # Normalize path (remove leading slash and static/ prefix if exists)
+            normalized_path = str(image_path).lstrip('/')
+            if normalized_path.startswith('static/'):
+                normalized_path = normalized_path[7:]
+        
+        # If path is empty after normalization, return None
+        if not normalized_path:
+            return None
+        
+        # Get API URL from config instance
+        config = Config()
+        api_url = config.API_URL
+        result_url = f"{api_url}/static/{normalized_path}"
+        return result_url
+    
     session = get_session()
     try:
         query = session.query(OrderModel)
@@ -97,9 +129,23 @@ def get_orders_service(from_date=None, to_date=None):
             query = query.filter(OrderModel.created_at <= to_date)
         
         orders = query.order_by(OrderModel.created_at.desc()).all()
+        
+        # Build response with dishSnapshot included
+        orders_data = []
+        for order in orders:
+            order_dict = order.to_dict()
+            # Query dish_snapshot separately
+            dish_snapshot = session.query(DishSnapshotModel).get(order.dish_snapshot_id)
+            if dish_snapshot:
+                dish_snapshot_dict = dish_snapshot.to_dict()
+                # Format image URL to full URL
+                dish_snapshot_dict['image'] = _format_image_url(dish_snapshot_dict.get('image'))
+                order_dict['dishSnapshot'] = dish_snapshot_dict
+            orders_data.append(order_dict)
+        
         return jsonify({
             'message': 'Lấy danh sách đơn hàng thành công',
-            'data': [order.to_dict() for order in orders]
+            'data': orders_data
         }), 200
     finally:
         session.close()
