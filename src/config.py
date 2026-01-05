@@ -9,6 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or os.environ.get('ACCESS_TOKEN_SECRET') or 'your-secret-key'
     DEBUG = os.environ.get('DEBUG', 'False').lower() in ['true', '1']
     TESTING = os.environ.get('TESTING', 'False').lower() in ['true', '1']
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # Giới hạn 16MB cho file uploads
     
     # Database
     DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///dev.db'
