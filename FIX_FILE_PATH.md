@@ -1,7 +1,9 @@
 # Sửa lỗi "Failed to open/read local data from file/application"
 
 ## Nguyên nhân:
+
 Lỗi này xảy ra khi:
+
 1. Đường dẫn file không đúng
 2. File không tồn tại
 3. Không có quyền đọc file
@@ -23,6 +25,7 @@ find ~/Desktop -name "*.jpg" -o -name "*.png" | head -5
 ### Bước 2: Lấy đường dẫn chính xác
 
 **Cách 1: Kéo thả file vào Terminal**
+
 1. Mở Terminal
 2. Gõ: `curl -X POST http://localhost:4000/media/test -F "file=@`
 3. **Kéo file ảnh từ Finder vào Terminal** (sau dấu @)
@@ -30,12 +33,14 @@ find ~/Desktop -name "*.jpg" -o -name "*.png" | head -5
 5. Hoàn thành lệnh: `"`
 
 **Cách 2: Copy đường dẫn từ Finder**
+
 1. Mở Finder
 2. Tìm file ảnh
 3. **Click chuột phải** vào file → **Option + Click** (hoặc giữ Option) → Chọn **"Copy ... as Pathname"**
 4. Dán vào lệnh curl
 
 **Cách 3: Dùng đường dẫn tương đối**
+
 ```bash
 # Nếu file ở Desktop
 curl -X POST http://localhost:4000/media/test \
@@ -118,5 +123,3 @@ ls -l /path/to/your/file.jpg
 # Nếu không có quyền đọc, thêm quyền
 chmod 644 /path/to/your/file.jpg
 ```
-
-

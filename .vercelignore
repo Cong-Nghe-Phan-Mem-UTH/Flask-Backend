@@ -1,0 +1,77 @@
+# Vercel ignore file
+# Exclude files that don't need to be deployed
+
+# Development files
+*.md
+!README.md
+env.example
+.env
+.env.local
+.env.*.local
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Uploads (will be ephemeral on Vercel - consider using external storage)
+# KHÔNG đẩy folder uploads lên Vercel - sẽ bị mất sau mỗi lần deploy
+uploads/
+src/uploads/
+**/uploads/
+
+# Database files (KHÔNG đẩy database local lên Vercel)
+# Database local có URL localhost sẽ không hoạt động trên production
+*.db
+*.sqlite
+*.sqlite3
+dev.db
+**/*.db
+**/dev.db
+prisma/dev.db
+
+# Scripts
+scripts/
+
+# Migrations (if not needed at runtime)
+migrations/
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+HUONG_DAN_*.md
+CHUYEN_DOI.md
+DEBUG_*.md
+FIX_*.md
+COPY_*.txt
+

@@ -41,6 +41,7 @@ curl -X POST http://localhost:4000/media/upload \
 ### 3. Kiểm tra logs
 
 Xem logs trong terminal nơi chạy Flask server để thấy:
+
 - Request có đến được route không?
 - Content-Type là gì?
 - Có file trong request không?
@@ -53,26 +54,26 @@ Xem logs trong terminal nơi chạy Flask server để thấy:
 ```javascript
 const uploadImage = async (file) => {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   try {
-    const response = await fetch('http://localhost:4000/media/upload', {
-      method: 'POST',
+    const response = await fetch("http://localhost:4000/media/upload", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        Authorization: `Bearer ${accessToken}`,
         // KHÔNG set Content-Type, browser sẽ tự động set
       },
-      body: formData
+      body: formData,
     });
 
     const result = await response.json();
-    console.log('Response:', result);
-    
+    console.log("Response:", result);
+
     if (!response.ok) {
-      console.error('Error:', result);
+      console.error("Error:", result);
     }
   } catch (error) {
-    console.error('Network error:', error);
+    console.error("Network error:", error);
   }
 };
 ```
@@ -80,19 +81,23 @@ const uploadImage = async (file) => {
 ### 5. Các lỗi thường gặp
 
 **Lỗi: "Không tìm thấy file trong request"**
+
 - Kiểm tra: Request có đúng `multipart/form-data` không?
 - Kiểm tra: Field name có đúng là `file`, `image`, hoặc `avatar` không?
 - Kiểm tra: Có set `Content-Type: multipart/form-data` thủ công không? (KHÔNG nên set, để browser tự động)
 
 **Lỗi: "Access token không hợp lệ"**
+
 - Kiểm tra: Token có hết hạn không?
 - Kiểm tra: Header có đúng format `Bearer <token>` không?
 
 **Lỗi: "File quá lớn"**
+
 - Giới hạn: 10MB
 - Kiểm tra: File có vượt quá không?
 
 **Lỗi: "File không hợp lệ"**
+
 - Chỉ chấp nhận: png, jpg, jpeg, gif, webp
 - Kiểm tra: Extension của file
 
@@ -111,18 +116,21 @@ const uploadImage = async (file) => {
 ### 7. Kiểm tra cấu hình
 
 **Kiểm tra MAX_CONTENT_LENGTH:**
+
 ```python
 # Trong src/config.py
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
 ```
 
 **Kiểm tra UPLOAD_FOLDER:**
+
 ```python
 # Trong src/config.py
 UPLOAD_FOLDER = os.path.join(_base_dir, 'uploads')
 ```
 
 **Kiểm tra folder tồn tại:**
+
 ```bash
 ls -la src/uploads/
 ```
@@ -144,8 +152,7 @@ def log_request():
 ## Liên hệ
 
 Nếu vẫn không được, vui lòng cung cấp:
+
 1. Logs từ server
 2. Response từ API
 3. Cách bạn đang gọi API (Frontend code hoặc curl command)
-
-
