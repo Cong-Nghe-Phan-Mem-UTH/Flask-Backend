@@ -33,10 +33,16 @@ def init_db(app):
     elif 'mysql' in database_uri.lower():
         connect_args = {'charset': 'utf8'}
     
+    # Add connection timeout for PostgreSQL
+    if 'postgresql' in database_uri.lower() and 'connect_timeout' not in database_uri.lower():
+        separator = '&' if '?' in database_uri else '?'
+        database_uri = f"{database_uri}{separator}connect_timeout=10"
+    
     engine = create_engine(
         database_uri,
         echo=app.config.get('DEBUG', False),
         pool_pre_ping=True,
+        pool_recycle=300,  # Recycle connections after 5 minutes
         connect_args=connect_args
     )
     
