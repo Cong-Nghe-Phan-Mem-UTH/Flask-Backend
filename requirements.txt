@@ -13,4 +13,5 @@ eventlet>=0.33
 python-socketio>=5.8
 pyodbc>=4.0
 pymssql>=2.2
+psycopg2-binary>=2.9
 
