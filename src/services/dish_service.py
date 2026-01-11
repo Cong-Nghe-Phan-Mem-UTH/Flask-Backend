@@ -412,18 +412,34 @@ def delete_dish_service(dish_id, force_delete=False):
                 # Normal delete: Keep snapshots with orders (set dish_id = NULL), delete orphan snapshots
                 # This preserves order history while allowing dish deletion
                 snapshots_with_orders = {order.dish_snapshot_id for order in orders_with_snapshots}
+                snapshots_to_keep = []
+                snapshots_to_delete = []
                 
                 for snapshot in dish_snapshots:
                     if snapshot.id in snapshots_with_orders:
                         # Snapshot has orders: keep it but remove dish reference to allow dish deletion
                         snapshot.dish_id = None
+                        snapshots_to_keep.append(snapshot.id)
                         snapshots_kept += 1
                         current_app.logger.info(f"💾 Keeping snapshot {snapshot.id} (has orders) - set dish_id to NULL")
                     else:
-                        # Snapshot has no orders: will be deleted by cascade
+                        # Snapshot has no orders: mark for deletion
+                        snapshots_to_delete.append(snapshot.id)
                         current_app.logger.info(f"🗑️  Snapshot {snapshot.id} has no orders - will be deleted")
+                
+                # Commit the dish_id = NULL changes first to prevent cascade issues
+                if snapshots_to_keep:
+                    session.commit()
+                    current_app.logger.info(f"✅ Committed dish_id = NULL for {len(snapshots_to_keep)} snapshots")
+                
+                # Manually delete orphan snapshots (those without orders)
+                if snapshots_to_delete:
+                    session.query(DishSnapshotModel).filter(
+                        DishSnapshotModel.id.in_(snapshots_to_delete)
+                    ).delete(synchronize_session=False)
+                    current_app.logger.info(f"🗑️  Deleted {len(snapshots_to_delete)} orphan snapshots")
         
-        # Now delete the dish (cascade will delete orphan snapshots)
+        # Now delete the dish (snapshots with orders are already detached, orphan snapshots are deleted)
         dish_dict = dish.to_dict()
         session.delete(dish)
         session.commit()
