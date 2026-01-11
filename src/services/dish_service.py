@@ -366,11 +366,31 @@ def update_dish_service(dish_id, body):
 def delete_dish_service(dish_id):
     """Delete dish"""
     from flask import abort
+    from infrastructure.models.order_model import OrderModel
+    from sqlalchemy.exc import IntegrityError
+    from domain.exceptions import EntityError, AuthError, ForbiddenError, StatusError
+    from werkzeug.exceptions import HTTPException
+    
     session = get_session()
     try:
         dish = session.query(DishModel).get(dish_id)
         if not dish:
             abort(404)
+        
+        # Check if there are any orders referencing this dish's snapshots
+        dish_snapshot_ids = [snapshot.id for snapshot in dish.dish_snapshots]
+        if dish_snapshot_ids:
+            orders_count = session.query(OrderModel).filter(
+                OrderModel.dish_snapshot_id.in_(dish_snapshot_ids)
+            ).count()
+            
+            if orders_count > 0:
+                # Cannot delete dish because it has orders
+                raise EntityError([{
+                    'field': 'general', 
+                    'message': f'Không thể xóa món ăn này vì có {orders_count} đơn hàng đang tham chiếu đến nó. Vui lòng xóa hoặc xử lý các đơn hàng trước.'
+                }])
+        
         dish_dict = dish.to_dict()
         session.delete(dish)
         session.commit()
@@ -384,6 +404,31 @@ def delete_dish_service(dish_id):
         })
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
         return response, 200
+    except (EntityError, AuthError, ForbiddenError, StatusError):
+        session.rollback()
+        raise
+    except HTTPException:
+        session.rollback()
+        raise
+    except IntegrityError as e:
+        session.rollback()
+        current_app.logger.error(f"❌ IntegrityError when deleting dish {dish_id}: {str(e)}")
+        # Check if it's a foreign key constraint issue
+        error_msg = str(e).lower()
+        if 'foreign key' in error_msg or 'constraint' in error_msg:
+            raise EntityError([{
+                'field': 'general', 
+                'message': 'Không thể xóa món ăn này vì có dữ liệu khác đang tham chiếu đến nó (đơn hàng, v.v.). Vui lòng xóa các dữ liệu liên quan trước.'
+            }])
+        # Re-raise other IntegrityErrors to be handled by error handler
+        raise
+    except Exception as e:
+        session.rollback()
+        current_app.logger.error(f"❌ Error deleting dish {dish_id}: {str(e)}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        # Convert other errors to EntityError
+        raise EntityError([{'field': 'general', 'message': f'Lỗi khi xóa món ăn: {str(e)}'}])
     finally:
         session.close()
 
