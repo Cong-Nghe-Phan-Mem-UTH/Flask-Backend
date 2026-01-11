@@ -26,8 +26,13 @@ def _normalize_image_path(image_path):
 
 def _format_image_url(image_path):
     """Format image URL to full URL if needed"""
-    if not image_path:
+    # Handle None, empty string, or whitespace-only strings
+    if not image_path or (isinstance(image_path, str) and not image_path.strip()):
+        print(f"⚠️  Empty or None image path, returning None")
         return None
+    
+    # Convert to string and strip whitespace
+    image_path = str(image_path).strip()
     
     # If already a full URL, normalize it first (extract filename)
     if image_path.startswith('http://') or image_path.startswith('https://'):
@@ -39,12 +44,13 @@ def _format_image_url(image_path):
             normalized_path = image_path.split('/')[-1]
     else:
         # Normalize path (remove leading slash and static/ prefix if exists)
-        normalized_path = str(image_path).lstrip('/')
+        normalized_path = image_path.lstrip('/')
         if normalized_path.startswith('static/'):
             normalized_path = normalized_path[7:]
     
     # If path is empty after normalization, return None
-    if not normalized_path:
+    if not normalized_path or not normalized_path.strip():
+        print(f"⚠️  Image path became empty after normalization: '{image_path}' -> '{normalized_path}'")
         return None
     
     # Get API URL from config instance
@@ -88,7 +94,10 @@ def get_dish_list_service(show_all=False, include_unavailable=False):
         dishes_data = []
         for dish in dishes:
             dish_dict = dish.to_dict()
-            dish_dict['image'] = _format_image_url(dish_dict['image'])
+            original_image = dish_dict.get('image')
+            formatted_image = _format_image_url(original_image)
+            dish_dict['image'] = formatted_image
+            print(f"📸 Dish ID {dish.id} ({dish.name}): original='{original_image}' -> formatted='{formatted_image}'")
             dishes_data.append(dish_dict)
         
         # Get status counts for frontend info
@@ -148,7 +157,10 @@ def get_dish_list_with_pagination_service(page, limit):
         dishes_data = []
         for dish in dishes:
             dish_dict = dish.to_dict()
-            dish_dict['image'] = _format_image_url(dish_dict['image'])
+            original_image = dish_dict.get('image')
+            formatted_image = _format_image_url(original_image)
+            dish_dict['image'] = formatted_image
+            print(f"📸 Dish ID {dish.id} ({dish.name}): original='{original_image}' -> formatted='{formatted_image}'")
             dishes_data.append(dish_dict)
         
         response = jsonify({

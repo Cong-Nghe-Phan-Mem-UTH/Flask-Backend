@@ -65,6 +65,12 @@ def create_app():
     upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
     create_folder(upload_folder)
     
+    # Health check endpoint for keep-alive
+    @app.route('/', methods=['GET'])
+    @app.route('/health', methods=['GET'])
+    def health_check():
+        return {'status': 'ok', 'message': 'Server is running'}, 200
+    
     # Register routes (static route is registered first in register_routes)
     register_routes(app)
     

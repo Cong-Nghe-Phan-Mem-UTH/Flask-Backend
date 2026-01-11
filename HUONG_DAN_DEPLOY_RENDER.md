@@ -245,6 +245,10 @@ port = int(os.environ.get('PORT', 4000))
 - Kiểm tra `requirements.txt` có đầy đủ packages không
 - Xem Logs để biết package nào thiếu
 
+**Lỗi thường gặp:**
+- `ModuleNotFoundError: No module named 'psycopg2'` → Thêm `psycopg2-binary>=2.9` vào `requirements.txt`
+- `ModuleNotFoundError: No module named 'eventlet'` → Đảm bảo có `eventlet>=0.33` trong `requirements.txt`
+
 ### ❌ Lỗi: Deployment Timed Out
 
 **Nguyên nhân:**
