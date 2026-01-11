@@ -1,4 +1,4 @@
-from flask import jsonify, g
+from flask import jsonify, g, current_app
 from infrastructure.databases import get_session
 from infrastructure.models.order_model import OrderModel
 from infrastructure.models.guest_model import GuestModel
@@ -89,6 +89,7 @@ def create_orders_service(body):
 def get_orders_service(from_date=None, to_date=None):
     """Get orders"""
     from infrastructure.models.dish_model import DishSnapshotModel
+    from infrastructure.models.guest_model import GuestModel
     from config import Config
     
     def _format_image_url(image_path):
@@ -130,10 +131,11 @@ def get_orders_service(from_date=None, to_date=None):
         
         orders = query.order_by(OrderModel.created_at.desc()).all()
         
-        # Build response with dishSnapshot included
+        # Build response with dishSnapshot and guest included
         orders_data = []
         for order in orders:
             order_dict = order.to_dict()
+            
             # Query dish_snapshot separately
             dish_snapshot = session.query(DishSnapshotModel).get(order.dish_snapshot_id)
             if dish_snapshot:
@@ -143,7 +145,19 @@ def get_orders_service(from_date=None, to_date=None):
                 order_dict['dishSnapshot'] = dish_snapshot_dict
             else:
                 # If dish_snapshot not found, set to null to prevent frontend errors
+                current_app.logger.warning(f"⚠️  DishSnapshot {order.dish_snapshot_id} not found for order {order.id}")
                 order_dict['dishSnapshot'] = None
+            
+            # Query guest separately if exists
+            if order.guest_id:
+                guest = session.query(GuestModel).get(order.guest_id)
+                if guest:
+                    order_dict['guest'] = guest.to_dict()
+                else:
+                    order_dict['guest'] = None
+            else:
+                order_dict['guest'] = None
+            
             orders_data.append(order_dict)
         
         return jsonify({
