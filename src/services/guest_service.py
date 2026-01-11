@@ -257,6 +257,9 @@ def guest_get_orders_service():
                 # Format image URL to full URL
                 dish_snapshot_dict['image'] = _format_image_url(dish_snapshot_dict.get('image'))
                 order_dict['dishSnapshot'] = dish_snapshot_dict
+            else:
+                # If dish_snapshot not found, set to null to prevent frontend errors
+                order_dict['dishSnapshot'] = None
             orders_data.append(order_dict)
         
         return jsonify({
