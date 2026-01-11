@@ -382,30 +382,48 @@ def delete_dish_service(dish_id, force_delete=False):
         if not dish:
             abort(404)
         
-        # Check if there are any orders referencing this dish's snapshots
-        dish_snapshot_ids = [snapshot.id for snapshot in dish.dish_snapshots]
+        # Handle dish snapshots before deleting dish
+        dish_snapshots = dish.dish_snapshots
+        dish_dict = dish.to_dict()
         orders_count = 0
-        if dish_snapshot_ids:
-            orders_count = session.query(OrderModel).filter(
-                OrderModel.dish_snapshot_id.in_(dish_snapshot_ids)
-            ).count()
-            
-            if orders_count > 0 and not force_delete:
-                # Cannot delete dish because it has orders (unless force delete)
-                raise EntityError([{
-                    'field': 'general', 
-                    'message': f'Không thể xóa món ăn này vì có {orders_count} đơn hàng đang tham chiếu đến nó. Vui lòng xóa hoặc xử lý các đơn hàng trước, hoặc sử dụng force delete để xóa cả đơn hàng liên quan.'
-                }])
-            
-            # If force delete, delete related orders first
-            if force_delete and orders_count > 0:
-                deleted_orders = session.query(OrderModel).filter(
-                    OrderModel.dish_snapshot_id.in_(dish_snapshot_ids)
-                ).all()
-                for order in deleted_orders:
-                    session.delete(order)
-                current_app.logger.info(f"🗑️  Force delete: Deleted {orders_count} orders related to dish {dish_id}")
+        snapshots_kept = 0
         
+        if dish_snapshots:
+            from infrastructure.models.dish_model import DishSnapshotModel
+            
+            # Get all snapshot IDs
+            snapshot_ids = [snapshot.id for snapshot in dish_snapshots]
+            
+            # Find which snapshots have orders
+            orders_with_snapshots = session.query(OrderModel).filter(
+                OrderModel.dish_snapshot_id.in_(snapshot_ids)
+            ).all()
+            
+            orders_count = len(orders_with_snapshots)
+            
+            if force_delete:
+                # Force delete: Delete all orders first, then snapshots will be deleted by cascade
+                if orders_count > 0:
+                    for order in orders_with_snapshots:
+                        session.delete(order)
+                    current_app.logger.info(f"🗑️  Force delete: Deleted {orders_count} orders related to dish {dish_id}")
+                # Snapshots will be deleted by cascade when dish is deleted
+            else:
+                # Normal delete: Keep snapshots with orders (set dish_id = NULL), delete orphan snapshots
+                # This preserves order history while allowing dish deletion
+                snapshots_with_orders = {order.dish_snapshot_id for order in orders_with_snapshots}
+                
+                for snapshot in dish_snapshots:
+                    if snapshot.id in snapshots_with_orders:
+                        # Snapshot has orders: keep it but remove dish reference to allow dish deletion
+                        snapshot.dish_id = None
+                        snapshots_kept += 1
+                        current_app.logger.info(f"💾 Keeping snapshot {snapshot.id} (has orders) - set dish_id to NULL")
+                    else:
+                        # Snapshot has no orders: will be deleted by cascade
+                        current_app.logger.info(f"🗑️  Snapshot {snapshot.id} has no orders - will be deleted")
+        
+        # Now delete the dish (cascade will delete orphan snapshots)
         dish_dict = dish.to_dict()
         session.delete(dish)
         session.commit()
@@ -416,11 +434,14 @@ def delete_dish_service(dish_id, force_delete=False):
         message = 'Xóa món ăn thành công!'
         if force_delete and orders_count > 0:
             message = f'Xóa món ăn thành công! Đã xóa {orders_count} đơn hàng liên quan.'
+        elif not force_delete and orders_count > 0:
+            message = f'Xóa món ăn thành công! Đã giữ lại {orders_count} đơn hàng trong lịch sử.'
         
         response = jsonify({
             'data': dish_dict,
             'message': message,
-            'deletedOrdersCount': orders_count if force_delete else 0
+            'deletedOrdersCount': orders_count if force_delete else 0,
+            'keptOrdersCount': orders_count if not force_delete else 0
         })
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
         return response, 200
