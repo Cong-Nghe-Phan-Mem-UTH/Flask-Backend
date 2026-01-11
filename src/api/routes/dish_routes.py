@@ -66,5 +66,7 @@ def update_dish(id):
 @pause_api_check
 @require_owner_or_employee
 def delete_dish(id):
-    return delete_dish_service(id)
+    # Check if force delete is requested (to delete related orders too)
+    force_delete = request.args.get('force', 'false').lower() == 'true'
+    return delete_dish_service(id, force_delete=force_delete)
 

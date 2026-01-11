@@ -363,8 +363,13 @@ def update_dish_service(dish_id, body):
     finally:
         session.close()
 
-def delete_dish_service(dish_id):
-    """Delete dish"""
+def delete_dish_service(dish_id, force_delete=False):
+    """Delete dish
+    
+    Args:
+        dish_id: ID of the dish to delete
+        force_delete: If True, delete related orders and dish snapshots. If False, prevent deletion if orders exist.
+    """
     from flask import abort
     from infrastructure.models.order_model import OrderModel
     from sqlalchemy.exc import IntegrityError
@@ -379,17 +384,27 @@ def delete_dish_service(dish_id):
         
         # Check if there are any orders referencing this dish's snapshots
         dish_snapshot_ids = [snapshot.id for snapshot in dish.dish_snapshots]
+        orders_count = 0
         if dish_snapshot_ids:
             orders_count = session.query(OrderModel).filter(
                 OrderModel.dish_snapshot_id.in_(dish_snapshot_ids)
             ).count()
             
-            if orders_count > 0:
-                # Cannot delete dish because it has orders
+            if orders_count > 0 and not force_delete:
+                # Cannot delete dish because it has orders (unless force delete)
                 raise EntityError([{
                     'field': 'general', 
-                    'message': f'Không thể xóa món ăn này vì có {orders_count} đơn hàng đang tham chiếu đến nó. Vui lòng xóa hoặc xử lý các đơn hàng trước.'
+                    'message': f'Không thể xóa món ăn này vì có {orders_count} đơn hàng đang tham chiếu đến nó. Vui lòng xóa hoặc xử lý các đơn hàng trước, hoặc sử dụng force delete để xóa cả đơn hàng liên quan.'
                 }])
+            
+            # If force delete, delete related orders first
+            if force_delete and orders_count > 0:
+                deleted_orders = session.query(OrderModel).filter(
+                    OrderModel.dish_snapshot_id.in_(dish_snapshot_ids)
+                ).all()
+                for order in deleted_orders:
+                    session.delete(order)
+                current_app.logger.info(f"🗑️  Force delete: Deleted {orders_count} orders related to dish {dish_id}")
         
         dish_dict = dish.to_dict()
         session.delete(dish)
@@ -398,9 +413,14 @@ def delete_dish_service(dish_id):
         # Emit socket event to notify frontend about deleted dish
         emit_to_manager('delete-dish', {'id': dish_id})
         
+        message = 'Xóa món ăn thành công!'
+        if force_delete and orders_count > 0:
+            message = f'Xóa món ăn thành công! Đã xóa {orders_count} đơn hàng liên quan.'
+        
         response = jsonify({
             'data': dish_dict,
-            'message': 'Xóa món ăn thành công!'
+            'message': message,
+            'deletedOrdersCount': orders_count if force_delete else 0
         })
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
         return response, 200
