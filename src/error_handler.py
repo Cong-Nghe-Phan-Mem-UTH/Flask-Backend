@@ -9,8 +9,16 @@ def setup_error_handler(app):
     
     @app.errorhandler(EntityError)
     def handle_entity_error(error):
+        # Use the first error message as the main message for better UX
+        # If frontend only shows 'message', it will still be helpful
+        main_message = 'Lỗi xảy ra khi xác thực dữ liệu...'
+        if error.errors and len(error.errors) > 0:
+            first_error = error.errors[0]
+            if isinstance(first_error, dict) and 'message' in first_error:
+                main_message = first_error['message']
+        
         response = jsonify({
-            'message': 'Lỗi xảy ra khi xác thực dữ liệu...',
+            'message': main_message,
             'errors': error.errors,
             'statusCode': 422
         })
