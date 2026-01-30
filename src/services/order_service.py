@@ -49,6 +49,7 @@ def create_orders_service(body):
                 description=dish.description,
                 image=dish.image,
                 status=dish.status,
+                category=getattr(dish, 'category', None),
                 dish_id=dish.id
             )
             session.add(dish_snapshot)
@@ -58,6 +59,7 @@ def create_orders_service(body):
                 dish_snapshot_id=dish_snapshot.id,
                 guest_id=guest_id,
                 quantity=order_data['quantity'],
+                note=order_data.get('note'),
                 table_number=guest.table_number,
                 order_handler_id=g.current_user_id,
                 status=OrderStatus.Pending
@@ -205,6 +207,7 @@ def update_order_service(order_id, body):
                 description=dish.description,
                 image=dish.image,
                 status=dish.status,
+                category=getattr(dish, 'category', None),
                 dish_id=dish.id
             )
             session.add(dish_snapshot)

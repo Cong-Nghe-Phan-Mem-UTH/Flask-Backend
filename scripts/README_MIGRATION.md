@@ -69,3 +69,4 @@ python3 scripts/migrate_data.py
 - Nếu vẫn lỗi, có thể do dữ liệu không hợp lệ trong SQLite
 
 
+

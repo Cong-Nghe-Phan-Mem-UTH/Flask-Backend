@@ -40,3 +40,4 @@ databases:
     databaseName: flaskdb
     plan: free
 
+

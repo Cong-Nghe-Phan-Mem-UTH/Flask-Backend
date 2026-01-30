@@ -175,6 +175,7 @@ def guest_create_orders_service(body):
                 description=dish.description,
                 image=dish.image,
                 status=dish.status,
+                category=getattr(dish, 'category', None),
                 dish_id=dish.id
             )
             session.add(dish_snapshot)
@@ -184,6 +185,7 @@ def guest_create_orders_service(body):
                 dish_snapshot_id=dish_snapshot.id,
                 guest_id=guest.id,
                 quantity=order_data['quantity'],
+                note=order_data.get('note'),
                 table_number=guest.table_number,
                 order_handler_id=None,
                 status=OrderStatus.Pending

@@ -27,7 +27,16 @@ def get_dish_list():
         show_all = request.args.get('showAll', 'false').lower() == 'true'
         include_unavailable = request.args.get('includeUnavailable', 'false').lower() == 'true'
     
-    return get_dish_list_service(show_all=show_all, include_unavailable=include_unavailable)
+    # Optional: filter by category (main, side, drink) and search by name/description
+    category = request.args.get('category') or None
+    search = request.args.get('search') or request.args.get('q') or None
+    
+    return get_dish_list_service(
+        show_all=show_all,
+        include_unavailable=include_unavailable,
+        category=category,
+        search=search
+    )
 
 @dish_bp.route('/pagination', methods=['GET'])
 def get_dish_list_with_pagination():

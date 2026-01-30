@@ -60,35 +60,49 @@ def _format_image_url(image_path):
     print(f"🔗 Formatting image: '{image_path}' -> '{result_url}'")
     return result_url
 
-def get_dish_list_service(show_all=False, include_unavailable=False):
+def get_dish_list_service(show_all=False, include_unavailable=False, category=None, search=None):
     """Get all dishes (for public homepage)
     
     Args:
         show_all: If True, show all dishes regardless of status
         include_unavailable: If True, include Unavailable dishes (but still exclude Hidden)
+        category: Optional filter by category (main, side, drink)
+        search: Optional search by name and description (case-insensitive, strip)
     """
     session = get_session()
     try:
-        # If show_all is True, return all dishes
+        query = session.query(DishModel)
+        
+        # Filter by category if provided
+        if category and category in ('main', 'side', 'drink'):
+            query = query.filter(DishModel.category == category)
+        
+        # If show_all is True, return all dishes (with filters above)
         if show_all:
-            dishes = session.query(DishModel).order_by(DishModel.created_at.desc()).all()
+            dishes = query.order_by(DishModel.created_at.desc()).all()
         elif include_unavailable:
             # Show Available and Unavailable, but exclude Hidden
-            dishes = session.query(DishModel).filter(
-                DishModel.status.in_(['Available', 'Unavailable'])
-            ).order_by(DishModel.created_at.desc()).all()
+            query = query.filter(DishModel.status.in_(['Available', 'Unavailable']))
+            dishes = query.order_by(DishModel.created_at.desc()).all()
         else:
             # Default: Get all dishes, but prioritize Available ones
             # If no Available dishes, show all dishes
-            available_dishes = session.query(DishModel).filter(
-                DishModel.status == 'Available'
-            ).order_by(DishModel.created_at.desc()).all()
+            available_query = query.filter(DishModel.status == 'Available')
+            available_dishes = available_query.order_by(DishModel.created_at.desc()).all()
             
-            # If no available dishes, get all dishes
+            # If no available dishes, get all dishes (with same category/search filters)
             if not available_dishes:
-                dishes = session.query(DishModel).order_by(DishModel.created_at.desc()).all()
+                dishes = query.order_by(DishModel.created_at.desc()).all()
             else:
                 dishes = available_dishes
+        
+        # Client-side search filter (by name and description) if search provided
+        if search and search.strip():
+            q = search.strip().lower()
+            dishes = [
+                d for d in dishes
+                if (d.name and q in d.name.lower()) or (d.description and q in d.description.lower())
+            ]
         
         # Format dishes with full image URLs
         dishes_data = []
@@ -118,7 +132,9 @@ def get_dish_list_service(show_all=False, include_unavailable=False):
             },
             'filters': {
                 'showAll': show_all,
-                'includeUnavailable': include_unavailable
+                'includeUnavailable': include_unavailable,
+                'category': category,
+                'search': search.strip() if search and search.strip() else None
             }
         })
         response.headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -227,14 +243,19 @@ def create_dish_service(body):
         
         # Get status from body, default to 'Available'
         dish_status = body.get('status', 'Available')
-        print(f"📝 Creating dish with status: {dish_status}")
+        # Category: main, side, drink (optional)
+        category = body.get('category')
+        if category and category not in ('main', 'side', 'drink'):
+            category = None
+        print(f"📝 Creating dish with status: {dish_status}, category: {category}")
         
         dish = DishModel(
             name=body.get('name', ''),
             price=int(body.get('price', 0)),
             description=body.get('description', ''),
             image=image_path,
-            status=dish_status
+            status=dish_status,
+            category=category
         )
         session.add(dish)
         session.commit()
@@ -326,6 +347,10 @@ def update_dish_service(dish_id, body):
         
         if 'status' in body:
             dish.status = body.get('status')
+        
+        if 'category' in body:
+            category = body.get('category')
+            dish.category = category if category in ('main', 'side', 'drink') else None
         
         session.commit()
         session.refresh(dish)

@@ -61,4 +61,10 @@ media/uploads/
 .DS_Store
 Thumbs.db
 
+# Personal/Development notes (keep local, exclude from GitHub)
+COPY_IP_INFO.txt
+COPY_LENH_CHAY_SERVER.txt
+DEBUG_UPLOAD.md
+FIX_FILE_PATH.md
+CHUYEN_DOI.md
 

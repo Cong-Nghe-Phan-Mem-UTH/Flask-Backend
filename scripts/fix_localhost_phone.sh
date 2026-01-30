@@ -71,3 +71,4 @@ echo "  - WiFi: Đảm bảo cùng mạng"
 echo "  - IP: Chạy lại script này để xác nhận IP"
 echo ""
 
+

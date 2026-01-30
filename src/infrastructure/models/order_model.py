@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from infrastructure.databases.base import Base
+from infrastructure.databases.base import Base, UnicodeString
 from datetime import datetime
 
 class OrderModel(Base):
@@ -11,6 +11,7 @@ class OrderModel(Base):
     table_number = Column(Integer, ForeignKey('Table.number'), nullable=True)
     dish_snapshot_id = Column(Integer, ForeignKey('DishSnapshot.id'), unique=True, nullable=False)
     quantity = Column(Integer, nullable=False)
+    note = Column(UnicodeString(500), nullable=True)  # Ghi chú cho món (guest/manager)
     order_handler_id = Column(Integer, ForeignKey('Account.id'), nullable=True)
     status = Column(String(50), default='Pending')
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -23,6 +24,7 @@ class OrderModel(Base):
             'tableNumber': self.table_number,
             'dishSnapshotId': self.dish_snapshot_id,
             'quantity': self.quantity,
+            'note': self.note,
             'orderHandlerId': self.order_handler_id,
             'status': self.status,
             'createdAt': self.created_at.isoformat() if self.created_at else None,

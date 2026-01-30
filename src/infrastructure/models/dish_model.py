@@ -14,6 +14,7 @@ class DishModel(Base):
     description = Column(UnicodeString(1000), nullable=False)
     image = Column(UnicodeString(500), nullable=True)  # Allow null for dishes without images
     status = Column(UnicodeString(50), default='Available')
+    category = Column(UnicodeString(50), nullable=True)  # main, side, drink (ăn chính, ăn phụ, đồ uống)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -27,6 +28,7 @@ class DishModel(Base):
             'description': self.description,
             'image': self.image,
             'status': self.status,
+            'category': self.category,
             'createdAt': self.created_at.isoformat() if self.created_at else None,
             'updatedAt': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -42,6 +44,7 @@ class DishSnapshotModel(Base):
     description = Column(UnicodeString(1000), nullable=False)
     image = Column(UnicodeString(500), nullable=True)  # Allow null for dishes without images
     status = Column(UnicodeString(50), default='Available')
+    category = Column(UnicodeString(50), nullable=True)  # main, side, drink (snapshot from Dish)
     dish_id = Column(Integer, ForeignKey('Dish.id'), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -56,6 +59,7 @@ class DishSnapshotModel(Base):
             'description': self.description,
             'image': self.image,
             'status': self.status,
+            'category': self.category,
             'dishId': self.dish_id,
             'createdAt': self.created_at.isoformat() if self.created_at else None,
             'updatedAt': self.updated_at.isoformat() if self.updated_at else None

@@ -64,3 +64,4 @@ ADMIN_PORT=5555 python admin_studio.py
 | Authentication | ❌ | ✅ (Owner only) |
 | Multiple DBs | ✅ | ✅ (SQLite/MSSQL/PostgreSQL/MySQL) |
 
+
