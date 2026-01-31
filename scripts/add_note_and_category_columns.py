@@ -24,16 +24,50 @@ except Exception:
     pass  # ignore .env parse errors; will use default DB path
 
 def run():
-    database_uri = os.environ.get('DATABASE_URL') or 'sqlite:///dev.db'
+    database_uri = (os.environ.get('DATABASE_URL') or 'sqlite:///dev.db').strip()
+    # Render often gives postgres://; psycopg2 expects postgresql://
+    if database_uri.startswith('postgres://'):
+        database_uri = 'postgresql://' + database_uri[9:]
+
+    # PostgreSQL (e.g. Render)
+    if 'postgresql' in database_uri.lower():
+        try:
+            import psycopg2
+            from urllib.parse import urlparse
+            parsed = urlparse(database_uri)
+            conn = psycopg2.connect(
+                host=parsed.hostname,
+                port=parsed.port or 5432,
+                dbname=parsed.path.lstrip('/'),
+                user=parsed.username,
+                password=parsed.password,
+                sslmode='require' if 'render.com' in (parsed.hostname or '') else None
+            )
+            cur = conn.cursor()
+            # Order
+            cur.execute('ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS note VARCHAR(500)')
+            print('Order.note: OK')
+            cur.execute('ALTER TABLE "Dish" ADD COLUMN IF NOT EXISTS category VARCHAR(50)')
+            print('Dish.category: OK')
+            cur.execute('ALTER TABLE "DishSnapshot" ADD COLUMN IF NOT EXISTS category VARCHAR(50)')
+            print('DishSnapshot.category: OK')
+            conn.commit()
+            cur.close()
+            conn.close()
+            print('PostgreSQL migration done.')
+            return
+        except Exception as e:
+            print('PostgreSQL migration error:', e)
+            raise
+
     if 'sqlite' not in database_uri.lower():
-        print('This script only supports SQLite. For PostgreSQL/MSSQL/MySQL, add columns manually.')
+        print('This script supports SQLite and PostgreSQL. For MSSQL/MySQL, add columns manually.')
         return
 
-    # SQLite: path is relative to cwd when using sqlite:///dev.db
+    # SQLite
     if database_uri.startswith('sqlite:///'):
         db_path = database_uri.replace('sqlite:///', '')
         if not os.path.isabs(db_path):
-            # dev.db is often in src/
             for base in [src_path, project_root]:
                 candidate = base / db_path
                 if candidate.exists():
@@ -48,7 +82,6 @@ def run():
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
 
-        # Order: add note (Order is reserved in SQLite, use quoted identifier)
         cur.execute('PRAGMA table_info("Order")')
         cols = [row[1] for row in cur.fetchall()]
         if 'note' not in cols:
@@ -57,7 +90,6 @@ def run():
         else:
             print('Order.note already exists')
 
-        # Dish: add category
         cur.execute('PRAGMA table_info(Dish)')
         cols = [row[1] for row in cur.fetchall()]
         if 'category' not in cols:
@@ -66,7 +98,6 @@ def run():
         else:
             print('Dish.category already exists')
 
-        # DishSnapshot: add category
         cur.execute('PRAGMA table_info(DishSnapshot)')
         cols = [row[1] for row in cur.fetchall()]
         if 'category' not in cols:
@@ -77,7 +108,7 @@ def run():
 
         conn.commit()
         conn.close()
-        print('Migration done.')
+        print('SQLite migration done.')
     except Exception as e:
         print('Error:', e)
         raise
