@@ -92,6 +92,7 @@ def get_orders_service(from_date=None, to_date=None):
     """Get orders"""
     from infrastructure.models.dish_model import DishSnapshotModel
     from infrastructure.models.guest_model import GuestModel
+    from infrastructure.models.account_model import AccountModel
     from config import Config
     
     def _format_image_url(image_path):
@@ -159,6 +160,16 @@ def get_orders_service(from_date=None, to_date=None):
                     order_dict['guest'] = None
             else:
                 order_dict['guest'] = None
+
+            # Query order handler (account who created/updated the order) if exists
+            if order.order_handler_id:
+                order_handler = session.query(AccountModel).get(order.order_handler_id)
+                if order_handler:
+                    order_dict['orderHandler'] = order_handler.to_dict()
+                else:
+                    order_dict['orderHandler'] = None
+            else:
+                order_dict['orderHandler'] = None
             
             orders_data.append(order_dict)
         
